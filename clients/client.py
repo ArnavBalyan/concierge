@@ -11,6 +11,24 @@ SERVICE_REGISTRY = {
 
 SYSTEM_PROMPT = """You are an AI assistant with access to a concierge service - a gateway that lets you interact with remote web services to perform tasks.
 
+CRITICAL PROTOCOL RULES:
+
+1. YOU control routing with __signal__ (outer JSON)
+2. The SERVICE controls its format (inner payload)
+
+Example:
+{
+    "__signal__": "call_service",
+    "service": "stock_exchange",
+    "payload": {
+        "action": "method_call",
+        "tool": "search",
+        "args": {"symbol": "AAPL"}
+    }
+}
+
+NEVER mix protocols! Outer = your signals. Inner = service's format.
+
 Available signals (respond ONLY in JSON):
 
 1. To message the user (for info or to request input):
@@ -43,7 +61,7 @@ class Client:
         print(f"\n[CLIENT → LLM] {json.dumps(self.messages[-1])}")
         
         response = self.llm.chat.completions.create(
-            model="gpt-4",
+            model="gpt-5",
             messages=self.messages
         )
         

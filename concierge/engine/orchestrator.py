@@ -9,7 +9,7 @@ from concierge.core.stage import Stage
 from concierge.core.workflow import Workflow
 from concierge.core.actions import Action, MethodCallAction, StageTransitionAction
 from concierge.core.results import Result, ToolResult, TransitionResult, ErrorResult, StateInputRequiredResult
-from concierge.presentations import ComprehensivePresentation
+from concierge.presentations import ComprehensivePresentation, BriefPresentation
 from concierge.external.contracts import ACTION_METHOD_CALL, ACTION_STAGE_TRANSITION
 
 
@@ -52,12 +52,12 @@ class Orchestrator:
             return ToolResult(
                 tool_name=action.tool_name,
                 result=result["result"],
-                presentation_type=ComprehensivePresentation
+                presentation_type=BriefPresentation
             )
         else:
             return ErrorResult(
                 message=result.get("message", result.get("error", "Unknown error")),
-                presentation_type=ComprehensivePresentation
+                presentation_type=BriefPresentation
             )
     
     async def execute_stage_transition(self, action: StageTransitionAction) -> Result:
@@ -77,13 +77,13 @@ class Orchestrator:
                     target_stage=action.target_stage,
                     message=f"To transition to '{action.target_stage}', please provide: {validation['missing']}",
                     required_fields=validation["missing"],
-                    presentation_type=ComprehensivePresentation
+                    presentation_type=BriefPresentation
                 )
             else:
                 return ErrorResult(
                     message=validation["error"],
                     allowed=validation.get("allowed"),
-                    presentation_type=ComprehensivePresentation
+                    presentation_type=BriefPresentation
                 )
         
         target = self.workflow.transition_to(action.target_stage)
@@ -98,7 +98,7 @@ class Orchestrator:
         return TransitionResult(
             from_stage=stage.name,
             to_stage=action.target_stage,
-            presentation_type=ComprehensivePresentation
+            presentation_type=BriefPresentation
         )
     
     def populate_state(self, state_data: dict) -> None:
