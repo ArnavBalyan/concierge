@@ -225,3 +225,7 @@ export function DetailsPanel({ workflow, selectedStage, selectedTask, onClose }:
   )
 }
 
+
+
+
+
