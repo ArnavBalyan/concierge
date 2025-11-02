@@ -5,6 +5,7 @@ from concierge.config import SERVER_HOST, SERVER_PORT
 
 from examples.simple_stock import StockWorkflow
 from examples.zillow.workflow import ZillowWorkflow
+from examples.data_debugging.workflow import DebuggingWorkflow
 
 if __name__ == "__main__":
     registry = get_registry()

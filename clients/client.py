@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import json
+import time
 import requests
 from openai import OpenAI
 from concierge.config import SERVICES
@@ -60,6 +61,7 @@ class Client:
         
         print(f"\n[CLIENT → LLM] {json.dumps(self.messages[-1])}")
         
+        time.sleep(20)  # Rate limit protection
         response = self.llm.chat.completions.create(
             model="gpt-5",
             messages=self.messages
