@@ -11,7 +11,7 @@
 **Expose your service to Agents**
 <br>
 
-Concierge is a framework that allows LLMs to interact with your applications, and navigate through complex services. Concierge provides a rich context to guide agents towards domain specific goals. (Example: Agents browsing, selecting, transcating for online shopping interface).
+Concierge is a framework that allows LLMs to interact with your applications, and navigate through complex service heirarchies. Concierge provides a rich context to guide agents towards domain specific goals. (Example: Agents browsing, selecting, transcating for online shopping interface).
 
 ## Core Concepts
 
@@ -78,6 +78,19 @@ class ShoppingWorkflow:
         cart: [checkout, selection, discovery],
         checkout: []
     }
+```
+
+## Quick Start
+
+```bash
+# Install dependencies
+pip install -e .
+
+# Run server
+./scripts/run-server.sh
+
+# Test with example workflow (in another terminal)
+python examples/shopping/workflow.py
 ```
 
 ## Examples
@@ -150,35 +163,18 @@ class CheckoutStage:
 
 ## Use Cases
 
-- **Data Debugging**: Navigate Spark logs, traces, and metrics through structured stages
+- **E-commerce**: Amazon-style shopping with browse, cart, and checkout workflows
+- **Real Estate**: Zillow property search, filter, schedule viewings, and applications
+- **Ride Sharing**: Uber ride booking with location, vehicle selection, and payment
+- **Food Delivery**: DoorDash ordering with restaurant browse, menu selection, and delivery tracking
+- **Travel Booking**: Expedia flights and hotels with multi-stage search and booking
 - **Financial Services**: Payment workflows with compliance checks and audit trails
-- **Infrastructure Operations**: Deploy services with validation gates and rollback logic
-- **Customer Support**: Escalation workflows with context preservation
 
-## Architecture
+---
 
-```
-┌─────────────┐
-│    Agent    │  Natural language request
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│      Concierge Language Engine      │
-│  • Parses intent                    │
-│  • Validates parameters             │
-│  • Checks prerequisites             │
-│  • Generates prompts                │
-└──────┬──────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│         Your Workflow               │
-│  @task                              │
-│  def process(state, params)         │
-│      # Your business logic          │
-└─────────────────────────────────────┘
-```
+**We are building the agentic web. Come join us.**
+
+Interested in contributing or building with Concierge? [Reach out](mailto:arnavbalyan1@gmail.com).
 
 ## Contributing
 
