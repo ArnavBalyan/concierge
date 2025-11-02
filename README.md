@@ -4,88 +4,79 @@
 </p>
 <br>
 
-<h3 align="center">
-A declarative framework for exposing services to AI agents
-</h3>
-
-<p align="center">
-| <a href="#about"><b>About</b></a> | <a href="#getting-started"><b>Getting Started</b></a> | <a href="#examples"><b>Examples</b></a> | <a href="#contributing"><b>Contributing</b></a> |
-</p>
-
----
-
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]() [![License: MIT](https://img.shields.io/badge/License-MIT-blue)]() [![Python 3.10+](https://img.shields.io/badge/python-3.10+-lightgrey)]()
 
-## About
+# Concierge Agentic Web Interfaces
 
-Concierge is a server-centric framework for building reliable AI agent workflows. Business logic stays server-side; agents interact through a language engine that handles validation, parameter collection, and state management.
+**Expose your service to Agents**
+<br>
 
-Built for high-stakes agentic interactions where domain-specific logic must be abstracted from agents and enforced server-side.
+Concierge is a framework that allows LLMs to interact with your applications, and navigate through complex services. Concierge provides a rich context to guide agents towards domain specific goals. (Example: Agents browsing, selecting, transcating for online shopping interface).
 
-Concierge provides:
+## Core Concepts
+Developer defines the workflow, rules and pre-requisites. Including the autonomy that an agent should have while navigating the AWI (example, agent does not checkout/transact before adding items to the cart. You can also define legal tasks, callables at a given point of time in the workflow). Conceirge provides a plethora of legal transitions/rules that ensures pre-requistes are met when agents use business logic, ensuring certain guiding principles when navigating through your AWI applications.
 
-- **Declarative workflows**: Define stages and tasks using Python decorators
-- **Automatic validation**: Type-safe parameters with auto-prompting for missing values
-- **State management**: Session state persisted across tasks and stages
-- **Controlled transitions**: Valid paths between stages enforced by framework
-- **Prerequisites enforcement**: Required state fields validated before stage entry
-- **Language engine**: Translates workflows into agent-understandable prompts
-
-## Features
-
-**For Developers:**
-- Type-safe task definitions with automatic parameter validation
-- Decorator-based workflow definition
-- Session management with state persistence
-- Multi-stage workflows with controlled transitions
-- REST API server included
-
-**For Production:**
-- Parameter validation before task execution
-- Stage prerequisites enforcement
-- Error handling and graceful failures
-- Audit trail of agent actions
-- Business rules enforced server-side
-
-## Getting Started
-
-Install Concierge:
-
-```bash
-pip install -e .
-```
-
-Run the server:
-
-```bash
-./scripts/run-server.sh
-```
-
-Define a workflow:
-
+### 🔤 **Tasks**
+Tasks are the smallest granularity of callable business logic. Several tasks can be defined within 1 stage. Ensuring these tasks are avialable or callable at the stage. 
 ```python
-from concierge.core import workflow, stage, task, State
-
-@stage(name="processing")
-class ProcessingStage:
-    @task(description="Process data with validation")
-    def process(self, state: State, input_data: str) -> dict:
-        result = self.validate_and_process(input_data)
-        state.set("result", result)
-        return {"status": "success", "result": result}
-
-@workflow(name="data_processor")
-class DataWorkflow:
-    processing = ProcessingStage
-    transitions = {}
+@task(description="Add product to shopping cart")
+def add_to_cart(self, state: State, product_id: str, quantity: int) -> dict:
+    """Adds item to cart and updates state"""
+    cart_items = state.get("cart.items", [])
+    cart_items.append({"product_id": product_id, "quantity": quantity})
+    state.set("cart.items", cart_items)
+    return {"success": True, "cart_size": len(cart_items)}
 ```
 
-Connect an agent:
+### 🏗️ **Stages**
+A stage is a logical sub-step towards a goal, Stage can have several tasks grouped together, that an agent can call at a given point. 
+```python
+@stage(name="selection")
+class SelectionStage:
+    @task(description="Add product to shopping cart")
+    def add_to_cart(self, state: State, product_id: str, quantity: int) -> dict:
+        """Adds item to cart"""
+        
+    @task(description="Save product to wishlist")
+    def add_to_wishlist(self, state: State, product_id: str) -> dict:
+        """Saves item for later"""
+        
+    @task(description="View product details")
+    def view_details(self, state: State, product_id: str) -> dict:
+        """Shows full product information"""
+```
 
-```bash
-curl -X POST http://localhost:8082/execute \
-  -H "Content-Type: application/json" \
-  -d '{"action": "handshake", "workflow_name": "data_processor"}'
+### 📦 **State**
+A state is a global context that is maintained by Concierge, parts of which can get propagated to other stages as the agent transitions and navigates through stages. 
+```python
+# State persists across stages and tasks
+state.set("cart.items", [{"product_id": "123", "quantity": 2}])
+state.set("user.email", "user@example.com")
+state.set("cart.total", 99.99)
+
+# Retrieve state values
+items = state.get("cart.items", [])
+user_email = state.get("user.email")
+```
+
+### 🔧 **Workflow**
+A workflow is a logic grouping of several stages, you can define graphs of stages which represent legal moves to other stages within workflow.
+```python
+@workflow(name="shopping")
+class ShoppingWorkflow:
+    discovery = DiscoveryStage      # Search and filter products
+    product = ProductStage          # View product details
+    selection = SelectionStage      # Add to cart/wishlist
+    cart = CartStage                # Manage cart items
+    checkout = CheckoutStage        # Complete purchase
+    
+    transitions = {
+        discovery: [product, selection],
+        product: [selection, discovery],
+        selection: [cart, discovery, product],
+        cart: [checkout, selection, discovery],
+        checkout: []
+    }
 ```
 
 ## Examples
