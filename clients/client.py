@@ -61,7 +61,6 @@ class Client:
         
         print(f"\n[CLIENT → LLM] {json.dumps(self.messages[-1])}")
         
-        time.sleep(20)  # Rate limit protection
         response = self.llm.chat.completions.create(
             model="gpt-5",
             messages=self.messages
