@@ -14,7 +14,8 @@
 Concierge is a framework that allows LLMs to interact with your applications, and navigate through complex services. Concierge provides a rich context to guide agents towards domain specific goals. (Example: Agents browsing, selecting, transcating for online shopping interface).
 
 ## Core Concepts
-Developer defines the workflow, rules and pre-requisites. Including the autonomy that an agent should have while navigating the AWI (example, agent does not checkout/transact before adding items to the cart. You can also define legal tasks, callables at a given point of time in the workflow). Conceirge provides a plethora of legal transitions/rules that ensures pre-requistes are met when agents use business logic, ensuring certain guiding principles when navigating through your AWI applications.
+
+Developers define workflows with explicit rules and prerequisites. You control agent autonomy by specifying legal tasks at each stage and valid transitions between stages. For example: agents cannot checkout before adding items to cart. Concierge enforces these rules, validates prerequisites before task execution, and ensures agents follow your defined path through the application.
 
 ### 🔤 **Tasks**
 Tasks are the smallest granularity of callable business logic. Several tasks can be defined within 1 stage. Ensuring these tasks are avialable or callable at the stage. 
@@ -31,8 +32,8 @@ def add_to_cart(self, state: State, product_id: str, quantity: int) -> dict:
 ### 🏗️ **Stages**
 A stage is a logical sub-step towards a goal, Stage can have several tasks grouped together, that an agent can call at a given point. 
 ```python
-@stage(name="selection")
-class SelectionStage:
+@stage(name="product")
+class ProductStage:
     @task(description="Add product to shopping cart")
     def add_to_cart(self, state: State, product_id: str, quantity: int) -> dict:
         """Adds item to cart"""
@@ -183,6 +184,3 @@ class CheckoutStage:
 
 Contributions are welcome. Please open an issue or submit a pull request.
 
-## License
-
-MIT
