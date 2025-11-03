@@ -15,7 +15,7 @@ class StateInputRequiredMessage(Communications):
             result.message,
             "",
             "Please provide the values in the following format:",
-            f'{{"action": "{ACTION_STATE_INPUT}", "data": {{',
+            f'{{"action": "{ACTION_STATE_INPUT}", "state_updates": {{',
         ]
         
         field_examples = []

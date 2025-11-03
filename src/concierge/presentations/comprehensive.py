@@ -55,6 +55,62 @@ class ComprehensivePresentation(Presentation):
         
         return "\n".join(lines)
     
+    def render_json(self, orchestrator) -> dict:
+        """
+        Render response as structured JSON for LLM tool calling.
+        Returns tasks and transitions as tools.
+        """
+        workflow = orchestrator.workflow
+        current_stage = orchestrator.get_current_stage()
+        
+        tools = []
+        for task_name, task in current_stage.tasks.items():
+            tools.append(task.to_schema())
+        
+        if current_stage.transitions:
+            stage_descriptions = {}
+            for target_stage_name in current_stage.transitions:
+                target_stage = workflow.get_stage(target_stage_name)
+                stage_descriptions[target_stage_name] = target_stage.description
+            
+            tools.append({
+                "name": "transition_stage",
+                "description": f"Move to a different stage in the workflow. Available stages: {', '.join(current_stage.transitions)}",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "target_stage": {
+                            "type": "string",
+                            "enum": current_stage.transitions,
+                            "description": "The stage to transition to. " + "; ".join(
+                                [f"{name}: {stage_descriptions[name]}" for name in current_stage.transitions]
+                            )
+                        }
+                    },
+                    "required": ["target_stage"]
+                }
+            })
+        
+        tools.append({
+            "name": "terminate_session",
+            "description": "End the current session",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "description": "Optional reason for ending the session"
+                    }
+                },
+                "required": []
+            }
+        })
+        
+        return {
+            "content": self.content,
+            "tools": tools
+        }
+    
     def _format_stages_structure(self, workflow) -> str:
         """Format the workflow stages structure"""
         stages_list = []

@@ -9,7 +9,7 @@ from concierge.core.stage import Stage
 from concierge.core.workflow import Workflow
 from concierge.core.actions import Action, MethodCallAction, StageTransitionAction
 from concierge.core.results import Result, TaskResult, TransitionResult, ErrorResult, StateInputRequiredResult
-from concierge.presentations import ComprehensivePresentation, BriefPresentation
+from concierge.presentations import ComprehensivePresentation, BriefPresentation, StateInputPresentation
 from concierge.external.contracts import ACTION_METHOD_CALL, ACTION_STAGE_TRANSITION
 from concierge.core.state_manager import get_state_manager
 
@@ -30,6 +30,7 @@ class Orchestrator:
         self.workflow.initialize()
         self.history = []
         self.pending_transition = None
+        self.required_state_fields = []  # Track required state fields
         
         # Create session in state_manager
         state_mgr = get_state_manager()
@@ -94,11 +95,12 @@ class Orchestrator:
         if not validation["valid"]:
             if validation.get("reason") == "missing_state":
                 self.pending_transition = action.target_stage
+                self.required_state_fields = validation["missing"] 
                 return StateInputRequiredResult(
                     target_stage=action.target_stage,
-                    message=f"To transition to '{action.target_stage}', please provide: {validation['missing']}",
+                    message=f"To transition to '{action.target_stage}', please provide: {', '.join(validation['missing'])}",
                     required_fields=validation["missing"],
-                    presentation_type=ComprehensivePresentation
+                    presentation_type=StateInputPresentation  
                 )
             else:
                 return ErrorResult(
@@ -160,6 +162,9 @@ class Orchestrator:
             current_stage.name,
             state_data
         )
+        
+        # Clear required state fields after providing
+        self.required_state_fields = []
     
     async def get_session_info(self) -> dict:
         """Get current session information"""

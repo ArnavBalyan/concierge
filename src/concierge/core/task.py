@@ -82,8 +82,7 @@ class Task:
         return {
             "name": self.name,
             "description": self.description,
-            "input_schema": InputModel.model_json_schema(),
-            "output_schema": self.output_schema
+            "input_schema": InputModel.model_json_schema()
         }
 
 

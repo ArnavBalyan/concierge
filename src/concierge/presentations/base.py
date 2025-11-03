@@ -29,4 +29,17 @@ class Presentation(ABC):
             Fully formatted response string
         """
         pass
+    
+    @abstractmethod
+    def render_json(self, orchestrator) -> dict:
+        """
+        Render response as structured JSON for LLM tool calling.
+        
+        Args:
+            orchestrator: Orchestrator instance to fetch metadata from
+            
+        Returns:
+            dict with 'content' (response message) and 'tools' (available actions)
+        """
+        pass
 

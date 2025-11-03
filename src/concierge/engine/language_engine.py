@@ -27,10 +27,19 @@ class LanguageEngine:
     Creates and manages its own orchestrator instance.
     """
     
-    def __init__(self, workflow: Workflow, session_id: str):
+    def __init__(self, workflow: Workflow, session_id: str, output_format: str = "text"):
+        """
+        Initialize language engine.
+        
+        Args:
+            workflow: Workflow to execute
+            session_id: Unique session identifier
+            output_format: Output format - "text" or "json" (default: "text")
+        """
         self.workflow = workflow
         self.session_id = session_id
         self.orchestrator = Orchestrator(workflow, session_id)
+        self.output_format = output_format
     
     def get_initial_message(self) -> str:
         """Get initial handshake message for new session"""
@@ -57,7 +66,8 @@ class LanguageEngine:
         - {"action": "handshake"}
         - {"action": "method_call", "task": "task_name", "args": {...}}
         - {"action": "stage_transition", "stage": "stage_name"}
-        - {"action": "state_input", "data": {"field1": "value1", ...}}
+        - {"action": "state_input", "state_updates": {"field1": "value1", ...}}
+        - {"action": "terminate_session", "reason": "optional_reason"}
         """
         try:
             action_type = llm_json.get("action")
@@ -87,13 +97,16 @@ class LanguageEngine:
                 return self._format_error_result(result)
             
             elif action_type == ACTION_STATE_INPUT:
-                state_data = llm_json.get("data", {})
+                state_data = llm_json.get("state_updates", {})
                 await self.orchestrator.populate_state(state_data)
                 result = StateUpdateResult(
                     message="State populated successfully.",
                     presentation_type=ComprehensivePresentation
                 )
                 return self._format_state_update(result)
+            
+            elif action_type == ACTION_TERMINATE_SESSION:
+                return self.get_termination_message(self.session_id)
             
             else:
                 return self._format_error_result(ErrorResult(
@@ -103,33 +116,40 @@ class LanguageEngine:
         except Exception as e:
             return self.get_error_message(str(e))
     
-    def _format_task_result(self, result: TaskResult) -> str:
+    def _render(self, presentation):
+        """Render presentation based on output_format"""
+        if self.output_format == "json":
+            result_dict = presentation.render_json(self.orchestrator)
+            return json.dumps(result_dict)
+        return presentation.render_text(self.orchestrator)
+    
+    def _format_task_result(self, result: TaskResult):
         """Format task execution result with current stage context"""
         content = TaskResultMessage().render(result)
         presentation = result.presentation_type(content)
-        return presentation.render_text(self.orchestrator)
+        return self._render(presentation)
     
-    def _format_transition_result(self, result: TransitionResult) -> str:
+    def _format_transition_result(self, result: TransitionResult):
         """Format transition result with new stage context"""
         content = TransitionResultMessage().render(result)
         presentation = result.presentation_type(content)
-        return presentation.render_text(self.orchestrator)
+        return self._render(presentation)
     
-    def _format_error_result(self, result: ErrorResult) -> str:
+    def _format_error_result(self, result: ErrorResult):
         """Format error message"""
         content = ErrorMessage().render(result)
         presentation = result.presentation_type(content)
-        return presentation.render_text(self.orchestrator)
+        return self._render(presentation)
     
-    def _format_state_input_required(self, result: StateInputRequiredResult) -> str:
+    def _format_state_input_required(self, result: StateInputRequiredResult):
         """Format state input required message"""
         content = StateInputRequiredMessage().render(result)
         presentation = result.presentation_type(content)
-        return presentation.render_text(self.orchestrator)
+        return self._render(presentation)
     
-    def _format_state_update(self, result: StateUpdateResult) -> str:
+    def _format_state_update(self, result: StateUpdateResult):
         """Format state update message"""
         content = StateUpdateMessage().render(result)
         presentation = result.presentation_type(content)
-        return presentation.render_text(self.orchestrator)
+        return self._render(presentation)
 
