@@ -173,6 +173,12 @@ class CheckoutStage:
         """Processes payment and creates order"""
 ```
 
+## Usecases:
+
+| Company | Use Case |
+|----------|-----------|
+| [**Funnel**](https://topfunnel.io) | Funnel uses Concierge to build next gen Sales Agents and Automated Bookings |
+
 ## Examples (examples folder): 
 
 - **E-commerce**: Online shopping with browse, cart, and checkout workflows
@@ -180,16 +186,6 @@ class CheckoutStage:
 - **Food Delivery**: Restaurant ordering with menu selection and delivery tracking
 - **Travel Booking**: Flights and hotels with multi-stage search and booking
 - **Payment**: Payment workflows with verification and compliance checks
-
----
-
-## Usecases:
-
-| Company | Use Case |
-|----------|-----------|
-| [**TopFunnel**](https://topfunnel.io) | Use Concierge for building AI-driven sales agents and Automated bookings |
-
----
 
 **We are building the agentic web. Come join us.**
 
