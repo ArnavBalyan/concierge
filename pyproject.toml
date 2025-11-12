@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "concierge-workflows"
+version = "0.1.0"
+description = "Declarative framework for building Agentic AI Services"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Agentic-Web-Interfaces/concierge"
+Repository = "https://github.com/Agentic-Web-Interfaces/concierge"
+
+[tool.setuptools]
+packages = ["concierge"]
+package-dir = {"" = "src"}
+
