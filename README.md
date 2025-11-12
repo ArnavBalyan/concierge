@@ -181,9 +181,6 @@ class CheckoutStage:
 - **Travel Booking**: Flights and hotels with multi-stage search and booking
 - **Payment**: Payment workflows with verification and compliance checks
 
-
----
-
 **We are building the agentic web. Come join us.**
 
 Interested in contributing or building with Concierge? [Reach out](mailto:arnavbalyan1@gmail.com).
