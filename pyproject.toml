@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "concierge_awi"
-version = "0.1.0"
+version = "0.1.1"
 description = "Declarative framework for building Agentic AI Services"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -22,6 +22,8 @@ Homepage = "https://github.com/Agentic-Web-Interfaces/concierge"
 Repository = "https://github.com/Agentic-Web-Interfaces/concierge"
 
 [tool.setuptools]
-packages = ["concierge"]
 package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
