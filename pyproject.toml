@@ -15,7 +15,12 @@ dependencies = [
     "pydantic>=2.0.0",
     "pyyaml>=6.0",
     "requests>=2.31.0",
+    "click>=8.0.0",
+    "openai>=1.0.0",
 ]
+
+[project.scripts]
+concierge = "concierge.cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/Agentic-Web-Interfaces/concierge"
@@ -23,7 +28,9 @@ Repository = "https://github.com/Agentic-Web-Interfaces/concierge"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+packages = ["concierge", "concierge.core", "concierge.serving", "concierge.configs", "concierge_clients"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools.package-data]
+"concierge.configs" = ["*.yaml"]
+"concierge" = ["../../web/dist/**/*"]
 

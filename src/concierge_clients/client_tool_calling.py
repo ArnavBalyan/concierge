@@ -3,6 +3,10 @@ import json
 import requests
 from openai import OpenAI
 from enum import Enum
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+from concierge.config import SERVER_HOST, SERVER_PORT
 
 
 class Mode(Enum):
@@ -16,12 +20,11 @@ class ToolCallingClient:
     def __init__(self, api_base: str, api_key: str):
         self.llm = OpenAI(base_url=api_base, api_key=api_key)
         self.model = "gpt-5"  
-        self.concierge_url = "http://localhost:8082"
+        self.concierge_url = f"http://{SERVER_HOST}:{SERVER_PORT}"
         
         self.mode = Mode.USER
-        self.in_context_servers = []  # Stores most recent search results
+        self.in_context_servers = []
         
-        # Workflow state
         self.workflow_sessions = {} 
         self.current_workflow = None
         self.current_tools = []
@@ -30,11 +33,19 @@ class ToolCallingClient:
             "role": "system",
             "content": """You are an AI assistant with access to remote Concierge workflows.
 
+CRITICAL: You must ONLY use the tools provided to you. DO NOT use your own knowledge or make up answers.
+
 Your job is to help users accomplish tasks by:
 1. Understanding what the user wants to do
-2. Searching for and connecting to the appropriate remote server
-3. Using the server's tools to complete the task
+2. Searching for and connecting to the appropriate remote server using search_remote_servers
+3. Using ONLY the server's provided tools to complete the task - never use your own knowledge
 4. Disconnecting when the task is complete or when the user needs different capabilities
+
+RULES:
+- If a tool call returns an error, inform the user about the error - don't make up alternate responses
+- Never answer questions about data without attempting to call the appropriate tool first
+- Always use the tools provided by the connected server
+- If you don't have the right tool, search for a different server or tell the user you can't help
 
 Always provide a seamless, conversational experience and explain what you're doing."""
         }]
@@ -286,7 +297,6 @@ Use this when:
         elif function_name == "terminate_session":
             return {"action": "terminate_session", "reason": arguments.get("reason", "completed")}
         else:
-            # Regular task call
             return {"action": "method_call", "task": function_name, "args": arguments}
     
     

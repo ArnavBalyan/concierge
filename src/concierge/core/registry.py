@@ -56,3 +56,8 @@ def get_registry() -> WorkflowRegistry:
     """Get global registry"""
     return _registry
 
+
+def register_workflow(workflow_class):
+    """Register a workflow class"""
+    _registry.register(workflow_class._workflow)
+

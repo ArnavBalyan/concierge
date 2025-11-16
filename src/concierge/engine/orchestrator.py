@@ -26,19 +26,10 @@ class Orchestrator:
     pending_transition: Optional[str] = None
     
     def __post_init__(self):
-        """Initialize session with workflow's initial stage"""
-        self.workflow.initialize()
+        """Initialize orchestrator (session already created by SessionManager)"""
         self.history = []
         self.pending_transition = None
         self.required_state_fields = []  # Track required state fields
-        
-        # Create session in state_manager
-        state_mgr = get_state_manager()
-        state_mgr.create_session(
-            session_id=self.session_id,
-            workflow_name=self.workflow.name,
-            initial_stage=self.workflow.get_cursor().name
-        )
     
     def get_current_stage(self) -> Stage:
         """Get current stage object"""

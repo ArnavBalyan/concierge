@@ -114,6 +114,9 @@ class LanguageEngine:
                     presentation_type=ComprehensivePresentation
                 ))
         except Exception as e:
+            print(f"[LANGUAGE ENGINE] Error in session {self.session_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return self.get_error_message(str(e))
     
     def _render(self, presentation):

@@ -30,15 +30,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         
         session_id = self.headers.get('X-Session-Id')
         
-        if not session_id:
-            session_id = self.server.session_manager.create_session()
-            print(f"[NEW] Created session: {session_id}")
-        else:
-            print(f"[EXISTING] Using session: {session_id}")
-        
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+            
             response = loop.run_until_complete(
                 self.server.session_manager.handle_request(session_id, body)
             )

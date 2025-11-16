@@ -1,8 +1,10 @@
 """Concierge REST API"""
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from concierge.core.registry import get_registry
@@ -15,15 +17,16 @@ class APIContext:
     """API runtime context"""
     session_managers: Dict[str, SessionManager]
     tracker: Optional[Any] = None
+    state_manager: Optional[Any] = None 
 
 
 _context: Optional[APIContext] = None
 
 
-def initialize_api(session_managers: Dict[str, SessionManager], tracker: Optional[Any] = None):
+def initialize_api(session_managers: Dict[str, SessionManager], tracker: Optional[Any] = None, state_manager: Optional[Any] = None):
     """Initialize API with runtime dependencies"""
     global _context
-    _context = APIContext(session_managers=session_managers, tracker=tracker)
+    _context = APIContext(session_managers=session_managers, tracker=tracker, state_manager=state_manager)
 
 
 def get_context() -> APIContext:
@@ -40,6 +43,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize state manager in Uvicorn's event loop"""
+    context = get_context()
+    await context.state_manager.initialize()
+    print("[STARTUP] State manager initialized")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close state manager resources on shutdown"""
+    context = get_context()
+    await context.state_manager.close()
+    print("[SHUTDOWN] State manager closed")
+
+
+web_dist = Path(__file__).parent.parent.parent.parent / "web" / "dist"
+print(f"[UI] Mounting web UI from: {web_dist}")
+app.mount("/assets", StaticFiles(directory=str(web_dist / "assets")), name="static")
+    
+@app.get("/")
+async def serve_ui():
+    """Serve the web UI"""
+    return FileResponse(str(web_dist / "index.html"))
 
 
 @app.get("/api/stats")
@@ -238,12 +266,29 @@ async def execute_workflow(http_request: Request):
         raise HTTPException(status_code=404, detail=f"Workflow not found: {workflow_name}")
     
     session_id = http_request.headers.get("x-session-id")
+    action = body.get("action")
+    
     if not session_id:
-        session_id = session_manager.create_session()
+        if action == "handshake":
+            session_id = await session_manager.create_session()
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Session ID required for action '{action}'. Send handshake first: {{'action': 'handshake', 'workflow_name': '{workflow_name}'}}"
+            )
+    else:
+        if session_id not in session_manager.sessions:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Session {session_id} not found. Send handshake to create new session."
+            )
     
-    result = await session_manager.handle_request(session_id, body)
+    try:
+        result = await session_manager.handle_request(session_id, body)
+    except Exception:
+        print(f"[EXECUTE] Error processing action '{action}' for workflow '{workflow_name}' (session={session_id})")
+        raise
     
-    # Return pre-serialized JSON string without double-encoding
     return Response(
         content=result,
         media_type="application/json",

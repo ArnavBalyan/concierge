@@ -26,7 +26,17 @@ class StateManager(ABC):
     """Base class defining state management contract."""
     
     @abstractmethod
-    def create_session(
+    async def initialize(self) -> None:
+        """Initialize state manager (e.g., database connections). Called once at startup."""
+        pass
+    
+    @abstractmethod
+    async def close(self) -> None:
+        """Close state manager resources (e.g., database connections). Called at shutdown."""
+        pass
+    
+    @abstractmethod
+    async def create_session(
         self,
         session_id: str,
         workflow_name: str,
@@ -104,7 +114,15 @@ class InMemoryStateManager(StateManager):
         self._sessions: Dict[str, Dict[str, Any]] = {}
         self._history: Dict[str, List[Dict[str, Any]]] = {}
     
-    def create_session(
+    async def initialize(self) -> None:
+        """No initialization needed for in-memory state."""
+        pass
+    
+    async def close(self) -> None:
+        """No cleanup needed for in-memory state."""
+        pass
+    
+    async def create_session(
         self,
         session_id: str,
         workflow_name: str,

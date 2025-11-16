@@ -53,6 +53,16 @@ class PostgreSQLStateManager(StateManager):
         self.pool_max_size = pool_max_size
         self._pool: Optional[asyncpg.Pool] = None
     
+    @staticmethod
+    def _load_json(data: str | None) -> Dict[str, Any]:
+        """Parse JSON string from Postgres into mutable dict."""
+        return json.loads(data) if data else {}
+    
+    @staticmethod
+    def _dump_json(data: Dict[str, Any]) -> str:
+        """Serialize dict to JSON string for Postgres jsonb columns."""
+        return json.dumps(data or {})
+    
     async def initialize(self):
         """Initialize database connection pool. Call this before using the manager."""
         if self._pool is None:
@@ -80,22 +90,7 @@ class PostgreSQLStateManager(StateManager):
                 "Call await state_manager.initialize() before use."
             )
     
-    def create_session(
-        self,
-        session_id: str,
-        workflow_name: str,
-        initial_stage: str
-    ) -> None:
-        """
-        Create new workflow session (synchronous wrapper).
-        Uses asyncio.run() to execute async operation.
-        """
-        import asyncio
-        
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.create_session_async(session_id, workflow_name, initial_stage))
-    
-    async def create_session_async(
+    async def create_session(
         self,
         session_id: str,
         workflow_name: str,
@@ -116,13 +111,13 @@ class PostgreSQLStateManager(StateManager):
             """
             INSERT INTO workflow_sessions 
                 (session_id, workflow_name, current_stage, global_state, stage_states)
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)
             """,
             session_id,
             workflow_name,
             initial_stage,
-            json.dumps({}),
-            json.dumps({initial_stage: {}})
+            self._dump_json({}),
+            self._dump_json({initial_stage: {}})
         )
         
         await self._snapshot(session_id)
@@ -143,17 +138,18 @@ class PostgreSQLStateManager(StateManager):
         if current is None:
             raise ValueError(f"Session {session_id} not found")
         
-        merged = {**current, **state_json}
+        current_dict = self._load_json(current)
+        merged = {**current_dict, **state_json}
         
         await self._pool.execute(
             """
             UPDATE workflow_sessions 
-            SET global_state = $1, 
+            SET global_state = $1::jsonb, 
                 updated_at = NOW(),
                 version = version + 1
             WHERE session_id = $2
             """,
-            json.dumps(merged),
+            self._dump_json(merged),
             session_id
         )
         
@@ -176,7 +172,7 @@ class PostgreSQLStateManager(StateManager):
         if row is None:
             raise ValueError(f"Session {session_id} not found")
         
-        stage_states = row['stage_states']
+        stage_states = self._load_json(row['stage_states'])
         current_stage_state = stage_states.get(stage_id, {})
         merged_stage_state = {**current_stage_state, **state_json}
         stage_states[stage_id] = merged_stage_state
@@ -184,12 +180,12 @@ class PostgreSQLStateManager(StateManager):
         await self._pool.execute(
             """
             UPDATE workflow_sessions 
-            SET stage_states = $1,
+            SET stage_states = $1::jsonb,
                 updated_at = NOW(),
                 version = version + 1
             WHERE session_id = $2
             """,
-            json.dumps(stage_states),
+            self._dump_json(stage_states),
             session_id
         )
         
@@ -211,6 +207,8 @@ class PostgreSQLStateManager(StateManager):
         if stage_states is None:
             raise ValueError(f"Session {session_id} not found")
         
+        stage_states = self._load_json(stage_states)
+        
         if stage_id not in stage_states:
             stage_states[stage_id] = {}
         
@@ -218,13 +216,13 @@ class PostgreSQLStateManager(StateManager):
             """
             UPDATE workflow_sessions 
             SET current_stage = $1,
-                stage_states = $2,
+                stage_states = $2::jsonb,
                 updated_at = NOW(),
                 version = version + 1
             WHERE session_id = $3
             """,
             stage_id,
-            json.dumps(stage_states),
+            self._dump_json(stage_states),
             session_id
         )
         
@@ -245,7 +243,7 @@ class PostgreSQLStateManager(StateManager):
         if state is None:
             raise ValueError(f"Session {session_id} not found")
         
-        return dict(state)
+        return self._load_json(state)
     
     async def get_stage_state(
         self,
@@ -263,7 +261,8 @@ class PostgreSQLStateManager(StateManager):
         if stage_states is None:
             raise ValueError(f"Session {session_id} not found")
         
-        return dict(stage_states.get(stage_id, {}))
+        stage_states_dict = self._load_json(stage_states)
+        return stage_states_dict.get(stage_id, {})
     
     async def get_state_history(
         self,
@@ -290,12 +289,14 @@ class PostgreSQLStateManager(StateManager):
         
         history = []
         for row in rows:
+            global_state = self._load_json(row['global_state'])
+            stage_states = self._load_json(row['stage_states'])
             history.append({
                 "session_id": session_id,
                 "workflow_name": row['workflow_name'],
                 "current_stage": row['current_stage'],
-                "global_state": row['global_state'],
-                "stage_states": row['stage_states'],
+                "global_state": global_state,
+                "stage_states": stage_states,
                 "version": row['version'],
                 "timestamp": row['timestamp'].isoformat()
             })
@@ -332,17 +333,19 @@ class PostgreSQLStateManager(StateManager):
         )
         
         if row:
+            global_state = self._load_json(row['global_state'])
+            stage_states = self._load_json(row['stage_states'])
             await self._pool.execute(
                 """
                 INSERT INTO state_history 
                     (session_id, workflow_name, current_stage, global_state, stage_states, version)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6)
                 """,
                 session_id,
                 row['workflow_name'],
                 row['current_stage'],
-                json.dumps(row['global_state']),
-                json.dumps(row['stage_states']),
+                self._dump_json(global_state),
+                self._dump_json(stage_states),
                 row['version']
             )
 

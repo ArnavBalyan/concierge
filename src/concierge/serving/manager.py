@@ -6,6 +6,7 @@ import uuid
 from typing import Dict
 from concierge.core.workflow import Workflow
 from concierge.engine.language_engine import LanguageEngine
+from concierge.core.state_manager import get_state_manager
 
 
 class SessionManager:
@@ -18,9 +19,19 @@ class SessionManager:
         self.workflow = workflow
         self.sessions: Dict[str, LanguageEngine] = {}
     
-    def create_session(self) -> str:
+    async def create_session(self) -> str:
         """Create a new session and return the session ID"""
         session_id = str(uuid.uuid4())
+        
+        # Create session in state manager BEFORE creating the engine
+        state_mgr = get_state_manager()
+        self.workflow.initialize()
+        await state_mgr.create_session(
+            session_id=session_id,
+            workflow_name=self.workflow.name,
+            initial_stage=self.workflow.get_cursor().name
+        )
+        
         language_engine = LanguageEngine(self.workflow, session_id)
         self.sessions[session_id] = language_engine
         return session_id
